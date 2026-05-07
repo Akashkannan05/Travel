@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Staff {
+  id                 Int         @id @default(autoincrement())
+  staffId            String      @unique
+  name               String
+  email              String?     @unique
+  assignedLocationId Int
+  status             StaffStatus @default(ACTIVE)
+  passwordHash       String
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  couriers           Courier[]
+  assignedLocation   Location    @relation(fields: [assignedLocationId], references: [id])
+}
+
+model Driver {
+  id          Int          @id @default(autoincrement())
+  name        String
+  phoneNumber String       @unique
+  status      DriverStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Vehicle {
+  id            Int           @id @default(autoincrement())
+  name          String
+  vehicleNumber String        @unique
+  status        VehicleStatus @default(WORKING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Location {
+  id           Int     @id @default(autoincrement())
+  location     String  @unique
+  staffMembers Staff[]
+}
+
+model Courier {
+  id                 Int           @id @default(autoincrement())
+  staffId            Int
+  customerName       String
+  email              String?
+  phoneNumber        String
+  productDescription String
+  isFragile          Boolean       @default(false)
+  weight             Float
+  paymentMethod      PaymentMethod
+  deadlineDate       DateTime
+  cashMethod         CashMethod
+  totalAmount        Float
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  destination        String
+  origin             String
+  status             CourierStatus @default(INPLACE)
+  staff              Staff         @relation(fields: [staffId], references: [id])
+}
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum VehicleStatus {
+  WORKING
+  NOT_WORKING
+}
+
+enum CourierStatus {
+  PENDING
+  INPLACE
+  SHIPPING
+  DELIVERED
+  SENT
+  INCOMING
+  RECEIVED
+}
+
+enum PaymentMethod {
+  PRE_PAYMENT
+  POST_PAYMENT
+  HALF_PAYMENT
+}
+
+enum CashMethod {
+  CASH
+  ONLINE
+}

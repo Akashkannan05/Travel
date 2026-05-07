@@ -1,0 +1,87 @@
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const config = require('../../config/env');
+const prisma = require('../../config/prisma');
+
+const signAccessToken = (payload) => {
+  return jwt.sign(payload, config.JWT_SECRET || 'fallback_secret_key', {
+    expiresIn: '1d', // Short-lived access token
+  });
+};
+
+const signRefreshToken = (payload) => {
+  return jwt.sign(payload, config.JWT_REFRESH_SECRET || 'fallback_refresh_key', {
+    expiresIn: '7d', // Long-lived refresh token
+  });
+};
+
+exports.login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    }
+
+    // Fetch Admin from Database
+    const admin = await prisma.admin.findUnique({ where: { email } });
+
+    if (!admin) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Validate password using bcrypt
+    const isMatch = await bcrypt.compare(password, admin.passwordHash);
+
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Issue JWT tokens upon success
+    const accessToken = signAccessToken({ id: admin.id, role: 'Admin' });
+    const refreshToken = signRefreshToken({ id: admin.id, role: 'Admin' });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        accessToken,
+        refreshToken,
+        user: { id: admin.id, email: admin.email, role: 'Admin' },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ success: false, message: 'Refresh token is required' });
+    }
+
+    jwt.verify(
+      refreshToken, 
+      config.JWT_REFRESH_SECRET || 'fallback_refresh_key', 
+      (err, decoded) => {
+        if (err || decoded.role !== 'Admin') {
+          return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
+        }
+
+        // Generate a new access token
+        const accessToken = signAccessToken({ id: decoded.id, role: decoded.role });
+        
+        res.status(200).json({
+          success: true,
+          data: {
+             accessToken
+          }
+        });
+      }
+    );
+  } catch (error) {
+    next(error);
+  }
+};
