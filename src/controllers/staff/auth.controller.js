@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const config = require('../../config/env');
 const prisma = require('../../config/prisma');
+const { formatDatesInObject } = require('../../utils/dateFormatter');
 
 const signAccessToken = (payload) => {
   return jwt.sign(payload, config.JWT_SECRET || 'fallback_secret_key', {
@@ -96,6 +97,74 @@ exports.refreshToken = async (req, res, next) => {
         });
       }
     );
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.signup = async (req, res, next) => {
+  try {
+    const { staffId, name, email, assignedLocationId, password } = req.body;
+
+    if (!staffId || !name || !assignedLocationId || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide staffId, name, assignedLocationId and password'
+      });
+    }
+
+    // Check if staffId already exists
+    const existingStaff = await prisma.staff.findUnique({ where: { staffId } });
+    if (existingStaff) {
+      return res.status(400).json({
+        success: false,
+        message: 'A staff member with this Staff ID already exists'
+      });
+    }
+
+    // Check if email already exists
+    if (email) {
+      const existingEmail = await prisma.staff.findUnique({ where: { email } });
+      if (existingEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'A staff member with this email already exists'
+        });
+      }
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const staff = await prisma.staff.create({
+      data: {
+        staffId,
+        name,
+        email,
+        assignedLocationId: parseInt(assignedLocationId),
+        passwordHash,
+        status: 'ACTIVE'
+      },
+      include: {
+        assignedLocation: true
+      }
+    });
+
+    // Issue JWT tokens
+    const accessToken = signAccessToken({ id: staff.id, role: 'Staff' });
+    const refreshToken = signRefreshToken({ id: staff.id, role: 'Staff' });
+
+    delete staff.passwordHash;
+
+    res.status(201).json({
+      success: true,
+      data: {
+        accessToken,
+        refreshToken,
+        user: formatDatesInObject(staff),
+      },
+    });
   } catch (error) {
     next(error);
   }

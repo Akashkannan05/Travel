@@ -316,3 +316,25 @@ exports.receiveCourier = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Get all locations for courier booking
+ * @route   GET /api/v1/staff/couriers/locations
+ * @access  Private (Staff)
+ */
+exports.getLocations = async (req, res, next) => {
+  try {
+    const locations = await prisma.location.findMany({
+      orderBy: { location: 'asc' }
+    });
+
+    res.status(200).json({
+      success: true,
+      count: locations.length,
+      data: locations
+    });
+  } catch (error) {
+    logger.error(`Error fetching locations for staff: ${error.message}`);
+    next(error);
+  }
+};

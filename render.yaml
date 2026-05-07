@@ -1,6 +1,7 @@
 services:
   - type: web
     name: travel-agency-api
+    plan: free
     runtime: node
     buildCommand: npm install && npx prisma generate
     startCommand: npm start

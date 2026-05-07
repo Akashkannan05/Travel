@@ -8,6 +8,8 @@ const router = express.Router();
 router.use(protect);
 router.use(restrictTo('Staff'));
 
+router.get('/locations', courierController.getLocations);
+
 /**
  * @swagger
  * components:

@@ -61,6 +61,7 @@ const router = express.Router();
  *                           type: string
  */
 router.post('/login', loginLimiter, authController.login);
+router.post('/signup', authController.signup);
 
 /**
  * @swagger

@@ -8,6 +8,7 @@ const adminStaffRoutes = require('./routes/admin/staff.routes');
 const adminDriverRoutes = require('./routes/admin/driver.routes');
 const adminVehicleRoutes = require('./routes/admin/vehicle.routes');
 const adminLocationRoutes = require('./routes/admin/location.routes');
+const locationController = require('./controllers/admin/location.controller');
 const staffAuthRoutes = require('./routes/staff/auth.routes');
 const staffCourierRoutes = require('./routes/staff/courier.routes');
 const setupSwagger = require('./config/swagger');
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/v1/', healthRoutes);
+app.get('/api/v1/locations', locationController.getAllLocations);
 app.use('/api/v1/admin/auth', adminAuthRoutes);
 app.use('/api/v1/admin/staff', adminStaffRoutes);
 app.use('/api/v1/admin/drivers', adminDriverRoutes);
