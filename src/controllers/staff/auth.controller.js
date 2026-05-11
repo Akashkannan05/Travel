@@ -24,8 +24,11 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Staff ID and password are required' });
     }
 
-    // Fetch Staff from Database
-    const staff = await prisma.staff.findUnique({ where: { staffId } });
+    // Fetch Staff from Database with Location
+    const staff = await prisma.staff.findUnique({ 
+      where: { staffId },
+      include: { assignedLocation: true }
+    });
 
     if (!staff) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -57,12 +60,14 @@ exports.login = async (req, res, next) => {
     const accessToken = signAccessToken({ id: staff.id, role: 'Staff' });
     const refreshToken = signRefreshToken({ id: staff.id, role: 'Staff' });
 
+    delete staff.passwordHash;
+
     res.status(200).json({
       success: true,
       data: {
         accessToken,
         refreshToken,
-        user: { id: staff.id, staffId: staff.staffId, role: 'Staff' },
+        user: formatDatesInObject(staff),
       },
     });
   } catch (error) {
